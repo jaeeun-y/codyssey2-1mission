@@ -1,6 +1,5 @@
 # codyssey2-1mission
-
-# JSONL 터미널 가계부
+## JSONL 터미널 가계부
 
 Python 표준 라이브러리만으로 만든 파일 기반 가계부입니다. Python 3.10 이상에서 저장소 폴더로 이동한 뒤 `python -m budget_app --help`를 실행하세요. 명령별 사용법은 `python -m budget_app COMMAND --help`로 확인할 수 있습니다. 처음 실행하면 `./data`와 저장 파일이 만들어지고 기본 카테고리(food, transport, housing, salary, other)가 등록됩니다. 저장 위치를 바꾸려면 전역 옵션을 명령 앞에 둡니다: `python -m budget_app --data-dir ./mydata list`.
 

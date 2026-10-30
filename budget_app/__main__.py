@@ -7,6 +7,7 @@ from .service import BudgetService
 
 
 def parser() -> argparse.ArgumentParser:
+    # 하위 명령별 옵션을 이곳에서 모아 CLI 사용법과 검증을 구성합니다.
     p = argparse.ArgumentParser(prog="python -m budget_app", description="JSONL 기반 개인 가계부")
     p.add_argument("--data-dir", type=Path, default=Path("./data"), help="저장 폴더 (기본: ./data)")
     commands = p.add_subparsers(dest="command", required=True)
@@ -41,6 +42,7 @@ def parser() -> argparse.ArgumentParser:
 
 
 def ask(label: str, validate=lambda x: x, default: str | None = None) -> str:
+    # 입력값이 유효해질 때까지 다시 묻고, 값이 없으면 기본값을 적용합니다.
     while True:
         value = input(f"{label}" + (f" [{default}]" if default else "") + ": ").strip()
         if not value and default is not None: return default
@@ -49,6 +51,7 @@ def ask(label: str, validate=lambda x: x, default: str | None = None) -> str:
 
 
 def show(items) -> None:
+    # 검색 결과가 비어 있는 경우에도 사용자가 알 수 있도록 안내합니다.
     found = False
     for t in items:
         found = True
@@ -58,6 +61,7 @@ def show(items) -> None:
 
 @timed
 def run(args: argparse.Namespace) -> None:
+    # 파싱된 명령을 서비스 계층에 전달하고 결과를 CLI에 출력합니다.
     service = BudgetService(args.data_dir)
     cmd = args.command
     if cmd == "add":

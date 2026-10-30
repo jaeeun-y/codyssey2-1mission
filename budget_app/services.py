@@ -9,7 +9,9 @@ from .storage import KeyValueStore, TransactionRepository
 
 
 class BudgetService:
+    """거래, 카테고리, 예산에 대한 가계부 업무 규칙을 제공합니다."""
     def __init__(self, data_dir: Path):
+        # 저장 파일을 준비하고 카테고리가 비어 있을 때 기본 항목을 등록합니다.
         self.data_dir = data_dir
         data_dir.mkdir(parents=True, exist_ok=True)
         self.transactions = TransactionRepository(data_dir / "transactions.jsonl")
@@ -32,6 +34,7 @@ class BudgetService:
         self.categories.write(values)
 
     def remove_category(self, name: str) -> None:
+        # 거래에서 사용 중인 카테고리는 남겨 참조가 끊기지 않게 합니다.
         if any(t.category == name for t in self.transactions.iter_all()):
             raise ValueError("이 카테고리를 사용하는 거래가 있어 삭제할 수 없습니다.")
         values = self.categories.read()
@@ -56,6 +59,7 @@ class BudgetService:
         if start: validate_date(start)
         if end: validate_date(end)
         if month: validate_month(month)
+        # 조건을 하나라도 만족하지 않는 거래는 건너뛰어 결과만 순회합니다.
         for item in self.transactions.iter_all():
             if start and item.date < start or end and item.date > end: continue
             if month and not item.date.startswith(month): continue
@@ -66,7 +70,7 @@ class BudgetService:
             yield item
 
     def ordered(self, **filters: str | None) -> list[Transaction]:
-        # Source is streamed. Newest-first presentation requires sorting matched rows.
+        # 원본은 스트리밍으로 읽지만 최신순 출력에는 검색 결과 정렬이 필요합니다.
         return sorted(self.iter_filtered(**filters), key=lambda t: (t.date, t.id), reverse=True)
 
     def delete(self, item_id: str) -> bool:
@@ -79,6 +83,7 @@ class BudgetService:
         category = changes.get("category")
         if category and category not in self.categories.read():
             raise ValueError(f"등록되지 않은 카테고리입니다: {category}")
+        # 수정 대상 외의 거래는 그대로 흘려보내고 대상 거래만 새 객체로 만듭니다.
         def updated() -> Iterator[Transaction]:
             for t in self.transactions.iter_all():
                 if t.id != item_id:
@@ -100,6 +105,7 @@ class BudgetService:
         budgets = self.budgets.read(); budgets[month] = str(parse_amount(amount)); self.budgets.write(budgets)
 
     def summary(self, month: str) -> dict[str, object]:
+        # 월별 합계와 지출 카테고리 합계를 한 번의 거래 순회로 계산합니다.
         validate_month(month)
         totals = {"income": Decimal(0), "expense": Decimal(0)}
         by_category: defaultdict[str, Decimal] = defaultdict(Decimal)
@@ -113,6 +119,7 @@ class BudgetService:
                 "budget": Decimal(budget) if budget else None}
 
     def import_csv(self, path: Path) -> int:
+        # 필수 열을 확인한 뒤 각 행을 일반 거래 생성 경로로 검증·저장합니다.
         added = 0
         with path.open(newline="", encoding="utf-8-sig") as stream:
             reader = csv.DictReader(stream)
@@ -126,6 +133,7 @@ class BudgetService:
         return added
 
     def export_csv(self, path: Path, **filters: str | None) -> int:
+        # 필터 결과를 UTF-8 BOM 형식으로 기록해 스프레드시트에서 한글을 보존합니다.
         items = self.ordered(**filters)
         with path.open("w", newline="", encoding="utf-8-sig") as stream:
             writer = csv.DictWriter(stream, fieldnames=["id", "date", "type", "category", "amount", "memo", "tags"])
